@@ -4,6 +4,9 @@ class FieldElement:
 
     def __init__(self, num, prime):
         # What happens when we create an object of this class
+        if num == None or prime == None:
+            error = f'None value not allowed'
+            raise ValueError(error)
         if  num >= prime or num < 0: # Use try/except instead of if?
             error = f'{num} not in field range 0 to {prime - 1}'
             raise ValueError(error)

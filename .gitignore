@@ -2,3 +2,6 @@ venv/*
 __pycache__/*
 .cache/
 test/__pycache__/*
+.eggs/*
+.tox/*
+bitcoin_python.egg-info/*
