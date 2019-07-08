@@ -56,3 +56,55 @@ class FieldElement:
             raise TypeError('Cannot divide two numbers in different Fields')
         num = self.num * pow(other.num, (self.prime-2), self.prime) % self.prime
         return self.__class__(num, self.prime)
+
+class Point:
+
+    def __init__(self, x, y, a, b):
+        if x is None and y is None:
+            return #Isn't there a better way?
+        if y**2 != x**3 + a * x + b:
+            raise ValueError(f'({x}, {y}) is not on the curve')
+        self.a = a
+        self.b = b
+        self.x = x
+        self.y = y
+
+    def __eq__(self, other):
+        return self.x == other.x and self.y == other.y \
+                and self.a == other.a and self.b == other.b
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        if self.x is None:
+            return 'Point(infinity)'
+        else:
+            return f'Point({self.x}, {self.y})_{self.a}_{self.b}'
+
+    def __add__(self, other):
+        if self.a != other.a or self.b != other.b:
+            raise TypeError(f'Points {self}, {other} are not on the same curve')
+
+        if self.x is None:
+            return other
+        if other.x is None:
+            return self
+
+        if self.x == other.x and self.y != other.y:
+            return self.__class__(None, None, a, b)
+
+        if self == other and self.y == 0:
+            return self.__class__(None, None, a, b)
+
+        if self.x != other.x and self.y != other.y:
+            m = (self.y - other.y)/(self.x - other.x)
+            x = pow(m, 2) - self.x - other.x
+            y = self.y + m*(x - self.x)
+            return self.__class__(x, y, a, b)
+
+        if self.x == other.x and self.y == other.y:
+            m = (3*pow(self.x, 2) + a) / (2 * self.y)
+            x = pow(m, 2) - self.x - other.x
+            y = self.y + m*(x - self.x)
+            return self.__class__(x, y, a, b)
