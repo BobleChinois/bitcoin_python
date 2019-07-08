@@ -7,7 +7,7 @@ setup(
     author="Sosthène",
     license="MIT",
     include_package_data=True,
-    packages=find_packages(exclude=["tests"]),
+    packages=find_packages(exclude=["test"]),
     setup_requires=["pytest-runner"],
     tests_require=["pytest"]
 )
