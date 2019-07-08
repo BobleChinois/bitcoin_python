@@ -60,14 +60,14 @@ class FieldElement:
 class Point:
 
     def __init__(self, x, y, a, b):
-        if x is None and y is None:
-            return #Isn't there a better way?
-        if y**2 != x**3 + a * x + b:
-            raise ValueError(f'({x}, {y}) is not on the curve')
         self.a = a
         self.b = b
         self.x = x
         self.y = y
+        if self.x is None and self.y is None:
+            return
+        if self.y**2 != self.x**3 + self.a * self.x + self.b:
+            raise ValueError(f'({self.x}, {self.y}) is not on the curve')
 
     def __eq__(self, other):
         return self.x == other.x and self.y == other.y \
@@ -92,19 +92,19 @@ class Point:
             return self
 
         if self.x == other.x and self.y != other.y:
-            return self.__class__(None, None, a, b)
+            return self.__class__(None, None, self.a, self.b)
 
         if self == other and self.y == 0:
-            return self.__class__(None, None, a, b)
+            return self.__class__(None, None, self.a, self.b)
 
-        if self.x != other.x and self.y != other.y:
-            m = (self.y - other.y)/(self.x - other.x)
+        if self.x != other.x:
+            m = (other.y - self.y) / (other.x - self.x)
             x = pow(m, 2) - self.x - other.x
-            y = self.y + m*(x - self.x)
-            return self.__class__(x, y, a, b)
+            y = m * (self.x - x) - self.y
+            return self.__class__(x, y, self.a, self.b)
 
-        if self.x == other.x and self.y == other.y:
-            m = (3*pow(self.x, 2) + a) / (2 * self.y)
-            x = pow(m, 2) - self.x - other.x
-            y = self.y + m*(x - self.x)
-            return self.__class__(x, y, a, b)
+        if self == other:
+            m = (3 * pow(self.x, 2) + self.a) / (2 * self.y)
+            x = pow(m, 2) - 2 * self.x
+            y = m * (self.x - x) - self.y
+            return self.__class__(x, y, self.a, self.b)

@@ -1,6 +1,6 @@
 import pytest
 
-from ecc.ecc import FieldElement
+from ecc.ecc import FieldElement, Point
 
 
 def test_FieldElement_valid():
@@ -74,4 +74,41 @@ def test_div():
     assert a / b == c
     assert d**-3 == e
     assert c**-4 * f == g
+   
+def test_Point_valid():
+    a = Point(None, None, 5, 7)
+    with pytest.raises(ValueError):
+        b = Point(4, 6, 5, 7)
+    c = Point(3, -7, 5, 7)
+
+    assert a.x == None
+    assert c.x == 3
+    assert c.y == -7
     
+def test_ne():
+    a = Point(3, -7, 5, 7)
+    b = Point(18, 77, 5, 7)
+    assert a != b
+    assert a == a
+
+def test_add():
+    a = Point(None, None, 5, 7)
+    b = Point(2, 5, 5, 7)
+    c = Point(2, -5, 5, 7)
+    d = Point(-1, 0, 6, 7)
+    e = Point(3, 7, 5, 7)
+    f = Point(-1, -1, 5, 7)
+    g = Point(18, 77, 5, 7)
+    # self.a != other.a (or b)
+    with pytest.raises(TypeError):
+        print(a + d)
+    # other.x is None
+    assert b + a == b
+    # self.x is None
+    assert a + b == b
+    # self.x == other.x, self.y != other.y
+    assert b + c == a
+    # self == other, y == 0
+    assert e + f == c
+    # self == other, y != 0
+    assert f + f == g
