@@ -1,7 +1,6 @@
 import pytest
 
-from ecc.ecc import FieldElement, Point
-
+from ecc.ecc import FieldElement, Point, G, N
 
 def test_FieldElement_valid():
 
@@ -108,7 +107,16 @@ def test_add():
     assert a + b == b
     # self.x == other.x, self.y != other.y
     assert b + c == a
-    # self == other, y == 0
+    # self != other
     assert e + f == c
     # self == other, y != 0
     assert f + f == g
+    # self == other, y == 0
+    assert d + d == Point(None, None, 6, 7)
+
+def test_S256Point_order():
+
+    p = N * G
+
+    assert p.x == None
+
