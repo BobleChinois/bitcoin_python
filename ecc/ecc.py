@@ -1,4 +1,5 @@
 # Elliptic Curves library for cryptography
+import ecc.util, hmac, hashlib
 
 class FieldElement:
 
@@ -158,6 +159,13 @@ class S256Point(Point):
     def __rmul__(self, coefficient):
         coef = coefficient % N
         return super().__rmul__(coef)
+
+    def verify(self, z, sig):
+        s_inv = pow(sig.s, N - 2, N)
+        u = z * s_inv % N
+        v = sig.r * s_inv % N
+        total = u * G + v * self
+        return total.x.num == sig.r
 
 G = S256Point(
         0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 
