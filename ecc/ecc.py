@@ -160,7 +160,8 @@ class S256Point(Point):
         coef = coefficient % N
         return super().__rmul__(coef)
 
-    def verify(self, z, sig):
+    def verify(self, m, sig):
+        z = ecc.util.generate_secret(m)
         s_inv = pow(sig.s, N - 2, N)
         u = z * s_inv % N
         v = sig.r * s_inv % N
@@ -175,13 +176,14 @@ G = S256Point(
 class PrivateKey:
 
     def __init__(self, secret):
-        self.secret = secret
-        self.point = secret * G
+        self.secret = ecc.util.generate_secret(secret)
+        self.point = self.secret * G
 
     def hex(self):
         return '{:x}'.format(self.secret).zfill(64)
 
-    def sign(self, z):
+    def sign(self, m):
+        z = ecc.util.generate_secret(m)
         k = self.deterministic_k(z)
         r = (k * G).x.num
         k_inv = pow(k, N - 2, N)
