@@ -27,7 +27,7 @@ class FieldElement:
 
     def __ne__(self, other):
         # this overwrite the standard `!=` operator
-        return not (self == other)
+        return not self == other
     
     def __add__(self, other):
         if self.prime != other.prime:
@@ -168,6 +168,10 @@ class S256Point(Point):
         total = u * G + v * self
         return total.x.num == sig.r
 
+    def verify_schnorr(self, m, sig):
+        e = ecc.util.generate_secret(ecc.util.to_string(self, sig.r, m))
+        return sig.s * G == sig.r + e * self
+
 G = S256Point(
         0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 
         0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
@@ -191,6 +195,14 @@ class PrivateKey:
         if s > N / 2:
             s = N - s
         return Signature(r, s)
+
+    def sign_schnorr(self, m):
+        z = ecc.util.generate_secret(m)
+        k = self.deterministic_k(z)
+        R = k * G
+        e = ecc.util.generate_secret(ecc.util.to_string(self.point, R, m))
+        s = k + e * self.secret % N
+        return Signature(R, s)
 
     def deterministic_k(self, z):
         k = b'\x00' * 32

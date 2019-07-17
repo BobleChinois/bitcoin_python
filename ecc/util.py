@@ -10,3 +10,9 @@ def generate_secret(s):
     raw_secret = string_to_byte(s)
     return int.from_bytes(hash256(raw_secret), 'big')
 
+def to_string(*args):
+    a = [args]
+    b = ""
+    for thing in args[:]:
+        b += str(thing)
+    return b
