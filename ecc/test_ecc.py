@@ -1,29 +1,30 @@
 import pytest
 
-from ecc.ecc import FieldElement, Point, G, N
+from ecc.ecc import FieldElement, Point, S256Field, S256Point, G, N, A, B
 
-def test_FieldElement_valid():
+@pytest.fixture
+def fieldelement():
+    valid = [(6, 13), (29, 31), (2, 31), (15, 31), (17, 31), (21, 31), (7, 31)] 
+    invalid = [(6, -13), (21, 17), (-5, 23), (None, None)] 
 
-    a = FieldElement(6, 13)
+    return [valid, invalid]
 
-    assert a.num == 6
-    assert a.prime == 13
+def test_invalid(fieldelement):
 
-def test_error():
-
+    elements = fieldelement[1]
     with pytest.raises(ValueError):
-        a = FieldElement(6, -13)
-    with pytest.raises(ValueError):
-        b = FieldElement(21, 17)
-    with pytest.raises(ValueError):
-        c = FieldElement(-5, 23)
-    with pytest.raises(ValueError):
-        d = FieldElement(None, None)
+        for i in elements:
+            a = FieldElement(*i)
 
-def test_ne():
-    a = FieldElement(2, 31)
-    b = FieldElement(2, 31)
-    c = FieldElement(15, 31)
+def test_valid(fieldelement):
+    elements = fieldelement[0]
+    for i in elements:
+        a = FieldElement(*i)
+
+def test_equal(fieldelement):
+    a = fieldelement[0][0]
+    b = fieldelement[0][0]
+    c = fieldelement[0][1]
     assert a == b
     assert (a != c) == True
     assert (a != b) == False
@@ -74,7 +75,7 @@ def test_div():
     assert d**-3 == e
     assert c**-4 * f == g
    
-def test_Point_valid():
+def test_Point_on_curve():
     a = Point(None, None, 5, 7)
     with pytest.raises(ValueError):
         b = Point(4, 6, 5, 7)
@@ -83,7 +84,7 @@ def test_Point_valid():
     assert a.x == None
     assert c.x == 3
     assert c.y == -7
-    
+
 def test_ne():
     a = Point(3, -7, 5, 7)
     b = Point(18, 77, 5, 7)
@@ -113,6 +114,26 @@ def test_add():
     assert f + f == g
     # self == other, y == 0
     assert d + d == Point(None, None, 6, 7)
+
+def test_S256Point_infinity():
+
+    p = S256Point(None, None)
+
+    assert p.x == None
+
+def test_S256Point_on_curve():
+
+    valid_points = ((192, 49595586433674346371396676657723195126542195230466278338713869241189108741795), (25, 1102551495006820024539592786237854453433258304779672753607085440481650452602))
+    invalid_points = ((200, 119), (42, 99))
+    for x_raw, y_raw in valid_points:
+        x = S256Field(x_raw)
+        y = S256Field(y_raw)
+        S256Point(x, y)
+    for x_raw, y_raw in invalid_points:
+        x = S256Field(x_raw)
+        y = S256Field(y_raw)
+        with pytest.raises(ValueError):
+            S256Point(x, y)
 
 def test_S256Point_order():
 
