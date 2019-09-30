@@ -1,5 +1,6 @@
 import hashlib
 
+from ecc.ecc import *
 from ecc.util import (
     hash160,
     hash256,
@@ -629,8 +630,11 @@ def op_sha256(stack):
 
 
 def op_hash160(stack):
-    raise NotImplementedError
-
+    if len(stack) < 1:
+        return False
+    element = stack.pop()
+    stack.append(hash160(element))
+    return True
 
 def op_hash256(stack):
     if len(stack) < 1:
@@ -640,9 +644,21 @@ def op_hash256(stack):
     return True
 
 
-def op_checksig(stack, z):
-    raise NotImplementedError
-
+def op_checksig(stack, m):
+    if len(stack) < 2:
+        return False
+    sec_pubkey = stack.pop()
+    der_sig = stack.pop()
+    try:
+        point = S256Point.parse(sec_pubkey)
+        sig = Signature.parse(der_sig)
+    except (ValueError, SyntaxError) as e:
+        return False
+    if point.verify(m, sig):
+        stack.append(encode_num(1))
+    else:
+        stack.append(encode_num(0))
+    return True
 
 def op_checksigverify(stack, z):
     return op_checksig(stack, z) and op_verify(stack)

@@ -1,5 +1,5 @@
 from ecc.util import *
-from tx.script import Script
+from tx.script import *
 
 from io import BytesIO
 import requests
@@ -53,6 +53,55 @@ class Tx:
         for tx_out in self.tx_outs:
             total_out += tx_out.amount
         return (total_in - total_out)
+
+    def sig_hash(self, input_index):
+        result = int_to_little_endian(self.version, 4)
+        result += encode_varint(len(self.tx_ins))
+        for i, tx_in in enumerate(self.tx_ins):
+            if i == input_index:
+                result += TxIn(
+                        prev_tx=tx_in.prev_tx,
+                        prev_index=tx_in.prev_index,
+                        script_sig=tx_in.script_pubkey(self.testnet),
+                        sequence=tx_in.sequence,
+                    ).serialize()
+            else:
+                result += TxIn(
+                        prev_tx=tx_in.prev_tx,
+                        prev_index=tx_in.prev_index,
+                        sequence=tx_in.sequence,
+                    ).serialize() 
+        result += encode_varint(len(self.tx_outs))
+        for tx_out in self.tx_outs:
+            result += tx_out.serialize()
+        result += int_to_little_endian(self.locktime, 4)
+        result += int_to_little_endian(SIGHASH_ALL, 4)
+        h256 = hash256(s)
+        return int.from_bytes(h256, 'big')
+
+    def sign_input(self, input_index, key):
+        z = self.sig_hash(input_index)
+        der = key.sign(z).der()
+        sig = der + SIGHASH_ALL.to_bytes(1, 'big')
+        sec = key.point.sec()
+        script_sig = Script([sig, sec])
+        self.tx_ins[input_index].script_sig = script_sig
+        return self.serialize().hex()
+
+    def verify_input(self, input_index):
+        tx_in = self.tx_ins[input_index]
+        script_pubkey = tx_in.script_pubkey(testnet=self.testnet)
+        z = self.sig_hash(input_index)
+        combined = tx_in.script_sig + script_pubkey
+        return combined.evaluate(z)
+
+    def verify(self):
+        if self.fee < 0:
+            return False
+        for i in range(len(self.tx_ins)):
+            if not self.verify_input(i):
+                return False
+        return True
 
     @classmethod
     def parse(cls, stream, testnet=False):

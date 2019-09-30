@@ -151,3 +151,6 @@ class Script:
         if stack.pop() == b'':
             return False
         return True
+
+    def p2pkh_script(self, h160):
+        return Script([0x76, 0xa9, h160, 0x88, 0xac])

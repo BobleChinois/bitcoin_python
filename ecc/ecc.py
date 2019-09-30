@@ -1,7 +1,8 @@
 # Elliptic Curves library for cryptography
 import hmac, hashlib
 
-from ecc.util import encode_base58_checksum, generate_secret, hash160, to_string
+from ecc.util import *
+from io import BytesIO
 
 class FieldElement:
 
@@ -166,7 +167,7 @@ class S256Point(Point):
         return super().__rmul__(coef)
 
     def verify(self, m, sig):
-        z = ecc.util.generate_secret(m)
+        z = generate_secret(m)
         s_inv = pow(sig.s, N - 2, N)
         u = z * s_inv % N
         v = sig.r * s_inv % N
@@ -237,7 +238,7 @@ class PrivateKey:
         return '{:x}'.format(self.secret).zfill(64)
 
     def sign(self, m):
-        z = ecc.util.generate_secret(m)
+        z = generate_secret(m)
         k = self.deterministic_k(z)
         r = (k * G).x.num
         k_inv = pow(k, N - 2, N)
@@ -310,3 +311,26 @@ class Signature:
                 sbin = b'\x00' + sbin
             result += bytes([2, len(sbin)]) + sbin
             return bytes([0x30, len(result)]) + result
+
+    @classmethod
+    def parse(cls, signature_bin):
+        s = BytesIO(signature_bin)
+        compound = s.read(1)[0]
+        if compound != 0x30:
+            raise SyntaxError("Bad Signature")
+        length = s.read(1)[0]
+        if length + 2 != len(signature_bin):
+            raise SyntaxError("Bad Signature Length")
+        marker = s.read(1)[0]
+        if marker != 0x02:
+            raise SyntaxError("Bad Signature")
+        rlength = s.read(1)[0]
+        r = int.from_bytes(s.read(rlength), 'big')
+        marker = s.read(1)[0]
+        if marker != 0x02:
+            raise SyntaxError("Bad Signature")
+        slength = s.read(1)[0]
+        s = int.from_bytes(s.read(slength), 'big')
+        if len(signature_bin) != 6 + rlength + slength:
+            raise SyntaxError("Signature too long")
+        return cls(r, s)
