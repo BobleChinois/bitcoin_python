@@ -1,6 +1,7 @@
 import hashlib
 
 BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
+SIGHASH_ALL = 1
 
 def hash256(s):
     return hashlib.sha256(hashlib.sha256(s).digest()).digest()

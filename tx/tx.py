@@ -76,7 +76,7 @@ class Tx:
             result += tx_out.serialize()
         result += int_to_little_endian(self.locktime, 4)
         result += int_to_little_endian(SIGHASH_ALL, 4)
-        h256 = hash256(s)
+        h256 = hash256(result)
         return int.from_bytes(h256, 'big')
 
     def sign_input(self, input_index, key):
@@ -86,7 +86,8 @@ class Tx:
         sec = key.point.sec()
         script_sig = Script([sig, sec])
         self.tx_ins[input_index].script_sig = script_sig
-        return self.serialize().hex()
+        print(self.tx_ins[input_index].script_sig)
+        return self.verify_input(input_index)
 
     def verify_input(self, input_index):
         tx_in = self.tx_ins[input_index]
@@ -96,7 +97,7 @@ class Tx:
         return combined.evaluate(z)
 
     def verify(self):
-        if self.fee < 0:
+        if self.fee() < 0:
             return False
         for i in range(len(self.tx_ins)):
             if not self.verify_input(i):

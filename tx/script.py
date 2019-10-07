@@ -29,7 +29,7 @@ class Script:
         return ' '.join(result)
 
     def __add__(self, other):
-        return Script(self.cmds + other.cmds)
+        return Script([self.cmds, other.cmds])
 
     @classmethod
     def parse(cls, s):
@@ -152,5 +152,5 @@ class Script:
             return False
         return True
 
-    def p2pkh_script(self, h160):
-        return Script([0x76, 0xa9, h160, 0x88, 0xac])
+def p2pkh_script(h160):
+    return Script([0x76, 0xa9, h160, 0x88, 0xac])
