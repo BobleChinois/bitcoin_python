@@ -81,3 +81,11 @@ def encode_varint(i):
         return b'\xff' + int_to_little_endian(i, 8)
     else:
         raise ValueError('integer too large: {}'.format(i))
+
+def find_duplicate(key, filename):
+    with open(filename, "r") as file:
+        for line in file:
+            if line.rstrip('\n') == str(key):
+                return True
+        return False
+

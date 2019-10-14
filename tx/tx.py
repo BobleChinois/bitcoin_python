@@ -82,7 +82,9 @@ class Tx:
     def sign_input(self, input_index, key):
         z = self.sig_hash(input_index)
         der = key.sign(z).der()
+        print(der)
         sig = der + SIGHASH_ALL.to_bytes(1, 'big')
+        print(sig)
         sec = key.point.sec()
         script_sig = Script([sig, sec])
         self.tx_ins[input_index].script_sig = script_sig

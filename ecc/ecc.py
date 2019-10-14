@@ -237,8 +237,8 @@ class PrivateKey:
     def hex(self):
         return '{:x}'.format(self.secret).zfill(64)
 
-    def sign(self, m):
-        z = generate_secret(m)
+    def sign(self, z):
+        #z = generate_secret(m)
         k = self.deterministic_k(z)
         r = (k * G).x.num
         k_inv = pow(k, N - 2, N)

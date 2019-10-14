@@ -11,13 +11,22 @@ from ecc.util import *
 from tx.tx import *
 from tx.script import *
 from validate.op import *
+from os import getcwd
 
 def get_keys():
-    if input("Avez_vous une clé ?") == "Oui":
+    if input("Avez-vous une clé ?") == "Oui":
         secret = int(input("Saisissez votre clé privée : "))
     else:
         secret = input("Saisissez une phrase secrète : ")
     return PrivateKey(secret)
+
+def update_keyfile(key, filename):
+    if not find_duplicate(key.secret, filename):
+        with open(filename, "a") as backup:
+            backup.write(str(key.secret) + '\n' + str(key.point) + '\n')
+            print("backup saved in {}".format(filename))
+    else:
+        print("key already in file {}".format(filename))
 
 def construct_tx():
     nb_inputs = int(input("nombre d'inputs : "))
@@ -41,17 +50,18 @@ def construct_tx():
         testnet = False
     return Tx(1, tx_ins, tx_outs, 0, testnet)
 
-def sign_tx(tx, keys):
+def sign_tx(tx):
     for index, tx_in in enumerate(tx.tx_ins):
-        print("Signing inpput {}".format(index))
-        tx.sign_input(index, keys)
+        print("Signing input {}".format(tx_in))
+        key = PrivateKey(int(input("Saisissez votre clé privée : ")))
+        tx.sign_input(index, key)
     return tx
 
 def main():
     keys = get_keys()
-    with open("my_secret", "a") as backup:
-        backup.write(str(keys.secret) + '\n' + str(keys.point) + '\n')
-        print("backup saved in current directory")
+    dirname = getcwd()
+    filename = dirname + "/my_secret"
+    update_keyfile(keys, filename)
 
     while 1:
         action = input("""
@@ -68,7 +78,7 @@ def main():
             tx = construct_tx()
             print(tx)
             print(tx.serialize().hex())
-            signed_tx = sign_tx(tx, keys)
+            signed_tx = sign_tx(tx)
             print(signed_tx)
             print(signed_tx.serialize().hex())
             #tx.broadcast() 
