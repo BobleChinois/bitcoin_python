@@ -106,6 +106,16 @@ class Tx:
                 return False
         return True
 
+    def is_coinbase(self):
+        return (len(self.tx_ins) == 1) and (self.tx_ins[0].prev_tx == bytes(32)) \
+                and (self.tx_ins[0].prev_index == '0xffffffff')
+
+    def coinbase_height(self):
+        if self.is_coinbase() == False:
+            return False
+        return little_endian_to_int(self.tx_ins[0].script_sig.cmds[0])
+
+
     @classmethod
     def parse(cls, stream, testnet=False):
         serialized_version = stream.read(4)
