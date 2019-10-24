@@ -287,6 +287,15 @@ class PrivateKey:
             suffix = b''
         return encode_base58_checksum(prefix + secret_bytes + suffix)
 
+    @classmethod
+    def parse(cls, wif):
+        privkey = decode_base58(wif)
+        if privkey[-1:] == b'\x01':
+            privkey = privkey[1:-1]
+        else:
+            privkey = privkey[1:]
+        return PrivateKey(big_endian_to_int(privkey))
+
 class Signature:
     def __init__(self, r, s):
         self.r = r

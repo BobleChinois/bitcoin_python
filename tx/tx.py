@@ -54,23 +54,23 @@ class Tx:
             total_out += tx_out.amount
         return (total_in - total_out)
 
-    def sig_hash(self, input_index):
+    def sig_hash(self, input_index, redeem_script=None):
         result = int_to_little_endian(self.version, 4)
         result += encode_varint(len(self.tx_ins))
         for i, tx_in in enumerate(self.tx_ins):
             if i == input_index:
-                result += TxIn(
-                        prev_tx=tx_in.prev_tx,
-                        prev_index=tx_in.prev_index,
-                        script_sig=tx_in.script_pubkey(self.testnet),
-                        sequence=tx_in.sequence,
-                    ).serialize()
+                if redeem_script:
+                    script_sig = redeem_script
+                else:
+                    script_sig = tx_in.script_pubkey(self.testnet)
             else:
-                result += TxIn(
-                        prev_tx=tx_in.prev_tx,
-                        prev_index=tx_in.prev_index,
-                        sequence=tx_in.sequence,
-                    ).serialize() 
+                script_sig = None
+            result += TxIn(
+                    prev_tx=tx_in.prev_tx,
+                    prev_index=tx_in.prev_index,
+                    script_sig=script_sig,
+                    sequence=tx_in.sequence,
+                ).serialize()
         result += encode_varint(len(self.tx_outs))
         for tx_out in self.tx_outs:
             result += tx_out.serialize()
@@ -91,10 +91,26 @@ class Tx:
         print(self.tx_ins[input_index].script_sig)
         return self.verify_input(input_index)
 
+    def sign_multisig_input(self, input_index, keys, redeem_script):
+        z = self.sig_hash(input_index, redeem_script)
+        for key in keys:
+            der = key.sign(z).der() + SIGHASH_ALL.to_bytes(1, 'big')
+            sig += der
+        script_sig = Script(['\x00',sig,redeem_script])
+        self.tx_ins[input_index].script_sig = script_sig
+        print(self.tx_ins[input_index].script_sig)
+        return self.verify_input(input_index)
+
     def verify_input(self, input_index):
         tx_in = self.tx_ins[input_index]
         script_pubkey = tx_in.script_pubkey(testnet=self.testnet)
-        z = self.sig_hash(input_index)
+        if script_pubkey.is_p2sh():
+            cmd = tx_in.script_sig.cmds[-1]
+            raw_redeem = encode_varint(len(cmd)) + cmd
+            redeem_script = Script.parse(BytesIO(raw_redeem))
+        else:
+            redeem_script = None
+        z = self.sig_hash(input_index, redeem_script)
         combined = tx_in.script_sig + script_pubkey
         return combined.evaluate(z)
 

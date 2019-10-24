@@ -126,31 +126,89 @@ class Script:
                 if cmd in (99, 100):
                     # op_if/op_notif require the cmds array
                     if not operation(stack, cmds):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        # LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
                         return False
                 elif cmd in (107, 108):
                     # op_toaltstack/op_fromaltstack require the altstack
                     if not operation(stack, altstack):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        # LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
                         return False
                 elif cmd in (172, 173, 174, 175):
                     # these are signing operations, they need a sig_hash
                     # to check against
                     if not operation(stack, z):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        # LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
                         return False
                 else:
                     if not operation(stack):
-                        LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
+                        # LOGGER.info('bad op: {}'.format(OP_CODE_NAMES[cmd]))
                         return False
             else:
                 # add the cmd to the stack
                 stack.append(cmd)
+                if self.is_p2sh == True:
+                    cmds.pop()
+                    h160 = cmds.pop()
+                    cmds.pop()
+                    if not op_hash160(stack):
+                        return False
+                    stack.append(h160)
+                    if not op_equal(stack):
+                        return False
+                    if not op_verify(stack):
+                        # LOGGER.info("bad p2sh h160")
+                        return False
+                    redeem_script = encode_varint(len(cmd)) + cmd
+                    stream = BytesIO(redeem_script)
+                    cmds.extend(Script.parse(stream).cmds)
         if len(stack) == 0:
             return False
         if stack.pop() == b'':
             return False
         return True
 
+    def is_p2sh(self):
+        return len(self.cmds) == 3 and self.cmds[0] == 0xa9 \
+                and type(self.cmds[1]) == bytes and len(self.cmds[1]) == 20 \
+                and self.cmds[2] == 0x87
+
 def p2pkh_script(h160):
     return Script([0x76, 0xa9, h160, 0x88, 0xac])
+
+
+'''
+def scriptgirl(scripts):
+    action = input("""
+        1 décoder un script (depuis représentation en hex)
+        2 encoder un script (depuis string)
+        3 générateur de scripts interactifs
+        4 retour au menu principal
+        """)
+    if action == "1":
+        script_hex = input("fournir un script en hexadécimal : ")
+        raw = bytes.fromhex(script_hex)
+        script = Script.parse(raw)
+        print(script)
+        if input("Voulez-vous enregistrer ce script ?") == "Oui":
+            scripts.append(script)
+        scriptgirl(scripts)
+    if action == "2":
+        # Take a string
+        string = input("fournir un script : ")
+        # Parse the string word by word (space separated)
+        for word in string.split():
+            if isop:
+                for num, operation in OP_CODE_NAMES:
+                    if operation == word:
+                        script.cmds.append(num)
+                    else:
+
+
+
+        # Create a Script class object
+        # if word begin with "OP_", push the corresponding opcode in the script
+        # else push data
+        continue
+    if action == "4":
+        return True
+'''

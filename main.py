@@ -28,7 +28,7 @@ def update_keyfile(key, filename):
     else:
         print("key already in file {}".format(filename))
 
-def construct_tx():
+def construct_tx(testnet=True):
     nb_inputs = int(input("nombre d'inputs : "))
     tx_ins = []
     for _ in range(nb_inputs):
@@ -44,17 +44,24 @@ def construct_tx():
         h160 = decode_base58(address)
         script_pubkey = p2pkh_script(h160) 
         tx_outs.append(TxOut(amount, script_pubkey))
-    if input("Testnet ? Oui ou Non") == "Oui":
-        testnet = True
-    else:
-        testnet = False
+        testnet = testnet
     return Tx(1, tx_ins, tx_outs, 0, testnet)
 
 def sign_tx(tx):
     for index, tx_in in enumerate(tx.tx_ins):
         print("Signing input {}".format(tx_in))
-        key = PrivateKey(int(input("Saisissez votre clé privée : ")))
-        tx.sign_input(index, key)
+        if tx_in.script_pubkey(testnet=tx.testnet).is_p2sh():
+            keys = []
+            while 1:
+                key = PrivateKey.parse(input("Saisissez votre clé privée (WIF) : "))
+                keys.append(key)
+                if input("Continuer la saisie de clés ? Oui ou Non ") == "Non":
+                    break
+            redeem_script = input("Redeem Script ? ")
+            tx.sign_input(index, keys, redeem_script)
+        else:
+            key = PrivateKey.parse(input("Saisissez votre clé privée (WIF) : "))
+            tx.sign_input(index, key)
     return tx
 
 def main():
@@ -62,20 +69,27 @@ def main():
     dirname = getcwd()
     filename = dirname + "/my_secret"
     update_keyfile(keys, filename)
+    testnet = True
 
     while 1:
         action = input("""
+            0 toggle testnet
             1 générer une adresse
             2 nouvelle transaction
             3 script
             4 voir la clé
             5 générer une nouvelle clé
             """)
+        """if action == "0":
+            if testnet == True:
+                testnet = False
+            else:
+                testnet = True"""
         if action == "1":
-            adress = keys.point.address(testnet=True)
+            adress = keys.point.address(testnet=testnet)
             print(adress)
         elif action == "2":
-            tx = construct_tx()
+            tx = construct_tx(testnet)
             print(tx)
             print(tx.serialize().hex())
             signed_tx = sign_tx(tx)
@@ -83,9 +97,13 @@ def main():
             print(signed_tx.serialize().hex())
             #tx.broadcast() 
         elif action == "3":
+            #scriptgirl()
             continue
         elif action == "4":
             print("Clé privée : {}\nclé publique : {}".format(keys.secret, keys.point))
+            print("Clé privée (WIF) : {}\n".format(keys.wif(testnet=testnet)))
+            print("Clé publique (compressée) : {}\n".format(keys.point.sec().hex()))
+            print("Clé publique (non compressée) : {}\n".format(keys.point.sec(compressed=False).hex()))
         elif action == "5":
             main()
         else:

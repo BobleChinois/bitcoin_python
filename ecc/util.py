@@ -1,4 +1,5 @@
 import hashlib
+from re import match
 
 BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 SIGHASH_ALL = 1
@@ -36,17 +37,30 @@ def encode_base58(s):
     return prefix + result
 
 def decode_base58(s):
+    # takes a str in base58 and returns a bytes object
     num = 0
     for c in s:
         num *= 58
         num += BASE58_ALPHABET.index(c)
-    combined = num.to_bytes(25, byteorder='big')
-    checksum = combined[-4:]
-    if hash256(combined[:-4])[:4] != checksum:
-        raise ValueError('bad address {} {}'.format(checksum,
-            hash256(combined[:-4])[:4]))
-    return combined[1:-4]
+    return verify_checksum(num)
 
+def verify_checksum(num):
+    # returns a byte object without the checksum if successful
+    to_check = bytes.fromhex(format(num, 'x'))
+    checksum = to_check[-4:]
+    if hash256(to_check[:-4])[:4] != checksum:
+        raise ValueError('bad address {} {}'.format(checksum,
+            hash256(to_check[:-4])[:4]))
+    return to_check[:-4]
+
+"""def decode_wif(wif):
+    res = decode_base58(wif)
+    if res[-1:] == b'\x01':
+        res = res[1:-1]
+    else:
+        res = res[1:]
+    return big_endian_to_int(res)
+"""
 def hash160(s):
     return hashlib.new('ripemd160', hashlib.sha256(s).digest()).digest()
 
@@ -58,6 +72,9 @@ def little_endian_to_int(b):
 
 def int_to_little_endian(a, length):
     return a.to_bytes(length, 'little')
+
+def big_endian_to_int(b):
+    return int.from_bytes(b, 'big')
 
 def read_varint(s):
     i = s.read(1)[0]
@@ -89,3 +106,12 @@ def find_duplicate(key, filename):
                 return True
         return False
 
+def isop(s):
+    return match("OP_", s)
+
+def h160_to_p2sh_address(h160, testnet=False):
+    if testnet:
+        prefix = b'\xc4'
+    else:
+        prefix = b'\x05'
+    return encode_base58_checksum(prefix + h160)
