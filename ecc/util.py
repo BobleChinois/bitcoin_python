@@ -2,6 +2,7 @@ import hashlib
 
 BASE58_ALPHABET = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 SIGHASH_ALL = 1
+PERIOD = 60*60*24*14
 
 def hash256(s):
     return hashlib.sha256(hashlib.sha256(s).digest()).digest()
@@ -89,3 +90,19 @@ def find_duplicate(key, filename):
                 return True
         return False
 
+def bits_to_target(bits):
+    exponent = bits[-1]
+    coefficient = little_endian_to_int(bits[:-1])
+    return coefficient * 256**(exponent - 3)
+    
+def target_to_bits(target):
+    raw_bytes = target.to_bytes(32, 'big')
+    raw_bytes = raw_bytes.lstrip(b'\x00')
+    if raw_bytes[0] > 0x7f:
+        exponent = len(raw_bytes) + 1
+        coefficient = b'\x00' + raw_bytes[:2]
+    else:
+        exponent = len(raw_bytes)
+        coefficient = raw_bytes[:3]
+    new_bits = coefficient[::-1] + bytes([exponent])
+    return new_bits

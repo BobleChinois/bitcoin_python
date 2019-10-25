@@ -22,6 +22,33 @@ class Block:
     def hash(self):
         return hash256(self.serialize())[::-1]
 
+    def bip9(self):
+        return self.version >> 29 == 0b001
+
+    def bip91(self):
+        return self.version >> 4 & 1 == 1
+
+    def bip141(self):
+        return self.version >> 1 & 1 == 1
+
+    def difficulty(self):
+        return 0xffff * 256**(0x1d-3) / self.target()
+
+    def target(self):
+        return bits_to_target(self.bits)
+
+    def check_pow(self):
+        proof = little_endian_to_int(hash256(self.serialize()))
+        return proof < self.target()
+
+    def calculate_new_bits(first_block, self):
+        time_differential = self.timestamp - first_block.timestamp
+        if time_differential > PERIOD * 4:
+            time_differential = PERIOD * 4
+        if time_differential < PERIOD // 4:
+            time_differential = PERIOD // 4
+        return self.target() * time_differential // PERIOD
+
     @classmethod
     def parse(cls, s):
         version = little_endian_to_int(s.read(4))
