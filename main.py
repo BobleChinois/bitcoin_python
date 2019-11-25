@@ -57,6 +57,17 @@ def sign_tx(tx):
         tx.sign_input(index, key)
     return tx
 
+def malleate_ecdsa(m, key):
+    z = generate_secret(m)
+    signed = key.sign(z)
+    r = signed.r
+    s = signed.s
+    malleated = Signature(r, -s)
+    return malleated
+
+def check_sig(m, pubkey, sig):
+    return pubkey.verify(m, sig)
+
 def main():
     keys = get_keys()
     dirname = getcwd()
@@ -70,6 +81,7 @@ def main():
             3 script
             4 voir la clé
             5 générer une nouvelle clé
+            6 malléabilité de signature
             """)
         if action == "1":
             adress = keys.point.address(testnet=True)
@@ -88,8 +100,14 @@ def main():
             print("Clé privée : {}\nclé publique : {}".format(keys.secret, keys.point))
         elif action == "5":
             main()
+        elif action == "6":
+            m = input("Tapez un message à signer")
+            mal_sig = malleate_ecdsa(m, keys)
+            print("Is the malleated sig valid ? {}".format(check_sig(m,
+            keys.point, mal_sig)))
+            continue
         else:
-            print("Choisissez une valeur entre 1 et 4")
+            print("Choisissez une valeur entre 1 et 6")
             continue
 
 if __name__ == "__main__":
