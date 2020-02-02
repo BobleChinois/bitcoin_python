@@ -106,3 +106,48 @@ def target_to_bits(target):
         coefficient = raw_bytes[:3]
     new_bits = coefficient[::-1] + bytes([exponent])
     return new_bits
+
+def bit_field_to_bytes(bit_field):
+    if len(bit_field) % 8 != 0:
+        raise RuntimeError('bit_field does not have a length that is divisible by 8')
+    result = bytearray(len(bit_field) // 8)
+    for i, bit in enumerate(bit_field):
+        byte_index, bit_index = divmod(i, 8)
+        if bit:
+            result[byte_index] |= 1 << bit_index
+    return bytes(result)
+
+
+def bytes_to_bit_field(some_bytes):
+    flag_bits = []
+    # iterate over each byte of flags
+    for byte in some_bytes:
+        # iterate over each bit, right-to-left
+        for _ in range(8):
+            # add the current bit (byte & 1)
+            flag_bits.append(byte & 1)
+            # rightshift the byte 1
+            byte >>= 1
+    return flag_bits
+
+def merkle_parent(hash1, hash2):
+    return hash256(hash1 + hash2)
+
+def merkle_parent_level(hashes):
+    if len(hashes) == 1:
+        raise RuntimeError('Cannot take a parent level with only 1 item')
+    if len(hashes) % 2 == 1:
+        hashes.append(hashes[-1])
+    parent_level = []
+    for i in range(0, len(hashes), 2):
+        parent = merkle_parent(hashes[i], hashes[i + 1])
+        parent_level.append(parent)
+    return parent_level
+
+def merkle_root(hashes):
+    current_level = hashes
+    while len(current_level) > 1:
+        print(*hashes)
+        current_level = merkle_parent_level(current_level)
+        print(*current_level)
+    return current_level[0]

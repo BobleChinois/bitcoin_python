@@ -1,3 +1,5 @@
+from math import log
+
 def ext_euclidean_algo(a, b):
     """
     From https://andrea.corbellini.name/2015/05/23/elliptic-curve-cryptography-finite-fields-and-discrete-logarithms/
@@ -40,3 +42,11 @@ def inverse_of(n, p):
             'modulo {}'.format(n, p))
     else:
         return x % p
+
+def find_y(x, a, b):
+    sqrY = x**3 + a*x + b
+    y = log(2, sqrY)
+    if type(y) == int:
+        return y
+    else:
+        raise ValueError(f'Impossible to find a valid y for x = {x}')
