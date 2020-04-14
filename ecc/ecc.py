@@ -287,6 +287,22 @@ class PrivateKey:
             suffix = b''
         return encode_base58_checksum(prefix + secret_bytes + suffix)
 
+    @classmethod
+    def from_wif(self, wif): 
+        num = 0
+        for c in wif:
+            num *= 58
+            num += BASE58_ALPHABET.index(c)
+        combined = num.to_bytes(38, byteorder='big')
+        checksum = combined[-4:]
+        if hash256(combined[:-4])[:4] != checksum:
+            raise ValueError('bad private key {} {}'.format(checksum,
+                hash256(combined[:-4])[:4]))
+        combined = combined[:-4]
+        if combined[-1] == 1:
+            secret = combined[:-1]
+        return secret[1:]
+
 class Signature:
     def __init__(self, r, s):
         self.r = r
