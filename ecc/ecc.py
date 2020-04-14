@@ -4,6 +4,13 @@ import hmac, hashlib
 from ecc.util import *
 from io import BytesIO
 
+P = pow(2, 256) - pow(2, 32) - 977
+A = 0
+B = 7
+Gx = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
+Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
+N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
+
 class FieldElement:
 
     def __init__(self, num, prime):
@@ -128,12 +135,6 @@ class Point:
         return result
 
     
-P = pow(2, 256) - pow(2, 32) - 977
-A = 0
-B = 7
-Gx = 0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798
-Gy = 0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
-N = 0xfffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141
 
 class S256Field(FieldElement):
 
@@ -219,10 +220,36 @@ class S256Point(Point):
         else:
             return S256Point(x, odd_beta)
 
-G = S256Point(
-        0x79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798, 
-        0x483ada7726a3c4655da4fbfc0e1108a8fd17b448a68554199c47d08ffb10d4b8
-    )
+
+    def create_commitment(self, domain, protocol, msg):
+        # implementation of LNPBP 1
+        # hash domain and protocol
+        domain_digest = hashlib.sha256(domain.encode('utf-8')).digest()
+        protocol_digest = hashlib.sha256(protocol.encode('utf-8')).digest()
+        # hash both tags' hashes with the msg
+        lnpbp1_msg = domain_digest + protocol_digest + msg.encode('utf-8')
+        # HMAC s and P to get the tweaking factor f
+        HMAC = hmac.new(self.sec(), None, hashlib.sha256)
+        HMAC.update(lnpbp1_msg)
+        f = int.from_bytes(HMAC.digest(), 'big')
+        # assert f < p
+        try:
+            f < P
+        except:
+            print("ERROR: tweak overflow secp256k1 order")
+        # Compute a new PrivateKey with f as secret
+        return PrivateKey(f)
+        # assert that F is not point at infinity
+        # TODO
+        # add F to P and return f, T
+
+    def tweak_pubkey(self, tweak):
+        return self + tweak
+
+    def verify_commitment(self, domain, protocol, msg, commitment):
+        return self.create_commitment(domain, protocol, msg).point == commitment
+
+G = S256Point(Gx, Gy)
 
 class PrivateKey:
 
@@ -286,6 +313,7 @@ class PrivateKey:
             suffix = b''
         return encode_base58_checksum(prefix + secret_bytes + suffix)
 
+# TODO: straighten up this method
     @classmethod
     def from_wif(self, wif): 
         num = 0
@@ -301,6 +329,7 @@ class PrivateKey:
         if combined[-1] == 1:
             secret = combined[:-1]
         return secret[1:]
+
 
 class Signature:
     def __init__(self, r, s):
