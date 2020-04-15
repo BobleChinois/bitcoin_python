@@ -17,10 +17,11 @@ from sys import argv
 def get_keys(key=None):
     if key is not None:
         return PrivateKey(key)
-    elif input("Avez-vous une clé ?") == "Oui":
-        secret = int(input("Saisissez votre clé privée : "))
+    answer = input("Do you have a key? y/n")
+    if answer == 'y':
+        secret = int(input("Type in your key (int):"))
     else:
-        secret = input("Saisissez une phrase secrète : ")
+        secret = input("Type in a secret phrase to generate a key:")
     return PrivateKey(secret)
 
 def update_keyfile(key, filename):
@@ -77,9 +78,10 @@ def commitment(point):
     msg = input("What is the message being commited? (ex: \"it was never about a virus\")")
     tweak = point.create_commitment(domain, protocol, msg)
     commitment = point.tweak_pubkey(tweak.point)
-    print("The pubkey containing the commitment is ", tweak.point)
+    print("The pubkey containing the commitment is ", commitment)
+    print("Address is ", commitment.address(testnet=True))
     print("It can be checked with the original pubkey, and the msg")
-    print("Is ", tweak.point, "valid for ", point, "and", msg,
+    print("Is ", commitment, "valid for ", point, "and", msg,
     "?")
     print(point.verify_commitment(domain, protocol, msg, commitment))
     return {'tweak': tweak, 'msg': msg}

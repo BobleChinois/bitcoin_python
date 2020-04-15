@@ -239,15 +239,13 @@ class S256Point(Point):
             print("ERROR: tweak overflow secp256k1 order")
         # Compute a new PrivateKey with f as secret
         return PrivateKey(f)
-        # assert that F is not point at infinity
-        # TODO
-        # add F to P and return f, T
 
     def tweak_pubkey(self, tweak):
+        # add F to P
         return self + tweak
 
     def verify_commitment(self, domain, protocol, msg, commitment):
-        return self.create_commitment(domain, protocol, msg).point == commitment
+        return self + self.create_commitment(domain, protocol, msg).point == commitment
 
 G = S256Point(Gx, Gy)
 
